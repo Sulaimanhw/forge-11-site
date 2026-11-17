@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Holdout · Forge 11</title>
+<meta name="description" content="The locked final test, pending.">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html">Forge 11</a>
+    <nav class="site-nav" aria-label="Main"><a href="index.html">Home</a><a href="hypotheses.html">Hypotheses</a><a href="how-it-works.html">How it works</a><a href="results.html">Results</a><a href="holdout.html" aria-current="page">Holdout</a><a href="about.html">About</a></nav>
+  </div>
+</header>
+<main class="wrap">
+<h1>Holdout test</h1>
+<p>Status: <span class="badge badge-pending">Pending</span></p>
+<div class="callout pending">PENDING. The holdout (1 October 2024 – 15 October 2026) has not been evaluated. It will be evaluated once, on the real, untransformed data, only when the author asks for it.</div>
+<p class="lede">The final test: two years of market data that no search in any arm has seen and that were never used for any decision.</p>
+<h2>What it will test</h2>
+<ol><li><strong>The original search (arm 1).</strong> Five formulas chosen by a rule fixed in advance: the top 5 by fitness, leaving out formulas that contradict their stated rationale and formulas whose daily ranking correlates above 0.8 with one already chosen. Compared with the median formula, 5 formulas drawn at random (seed 20261010) and the top 5 under the original direction rule. The pre-registered success criterion: the combined five have a holdout Sharpe ratio above 0 <em>and</em> a yearly return above the equal-weighted Dow (EW_DOW).</li><li><strong>The transfer test on the holdout.</strong> The same 70 formulas as on the <a href="results.html">Results</a> page — the top 10 and a random 10 from each transformed arm, plus the real control's top 10 — tested on the real holdout data. Nothing is re-drawn.</li><li><strong>The decline test on the holdout.</strong> The same formulas during the largest declines of the equal-weighted Dow in the holdout period.</li></ol>
+<h2>Conditions before it may run</h2>
+<div class="table-wrap"><table><thead><tr><th>Condition</th><th>Status</th></tr></thead><tbody><tr><td>At least 300 tested formulas in arm 1</td><td><span class="badge badge-ok">Met (303)</span></td></tr><tr><td>Arms 2, 3, 4 and 5 have reached their stop rule</td><td><span class="badge badge-ok">Met</span></td></tr><tr><td>The author explicitly asks for the evaluation</td><td><span class="badge badge-pending">Not yet</span></td></tr></tbody></table></div>
+<p>The software enforces the plan: it refuses to evaluate the holdout if the plan file is missing or was edited, if a condition is not met, or if a look was already made (a second look needs a recorded reason). The plan's commit is stored with every holdout result.</p>
+<h2>The plan and its amendments</h2>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>Change</th></tr></thead><tbody><tr><td class="nowrap">2026-10-10</td><td><code>bd41f19</code></td><td>Pre-registered holdout evaluation plan</td></tr><tr><td class="nowrap">2026-10-12</td><td><code>9c8de14</code></td><td>Holdout plan amendment 1: direction threshold 0.2, report original-rule top 5 too</td></tr><tr><td class="nowrap">2026-10-16</td><td><code>553c58b</code></td><td>Holdout plan amendment 2: holdout ends 2026-10-15; paper trading from 2026-10-16</td></tr><tr><td class="nowrap">2026-11-12</td><td><code>5903025</code></td><td>Holdout plan amendment 3: one look after all five arms; transfer-test groups included</td></tr></tbody></table></div>
+<details><summary>The full pre-registered holdout plan (docs/HOLDOUT_PLAN.md)</summary><pre># Forge 11 — Pre-registered Holdout Evaluation Plan
+
+_Written 2026-10-10, before the long research run. This file is committed to
+the repository before any holdout data is evaluated. `python -m forge_11
+evaluate-holdout` refuses to run unless this file exists and is committed
+unchanged, and it records this file&#x27;s commit hash with every holdout result._
+
+## Why a pre-registered plan
+
+The research loop has seen train (2011–2018) and validation (2019 to
+2024-09-30) results for every formula it proposed, generation after
+generation. Even with walk-forward folds, a Deflated Sharpe Ratio and penalties
+for overfitting, the search can fit the validation period itself. The holdout
+period is the only data no formula, no LLM prompt and no design decision has
+seen. Deciding *in advance* how it will be used — which formulas, which
+comparison, what counts as success — prevents choosing those after looking at
+the results.
+
+## Holdout data
+
+- Period: from **2024-10-01** to the last trading day in the data cache when
+  the evaluation runs. The cache is refreshed once (`fetch-data`) immediately
+  before the evaluation.
+- Same rules as the research period: point-in-time Dow membership, next-day
+  open execution, top-5 long-only, 5 + 5 bps costs and slippage, each
+  formula&#x27;s own rebalance frequency, dividend-adjusted prices.
+- Each formula is backtested continuously from 2010 with its fixed
+  expression; only returns dated in the holdout period are scored.
+
+## When
+
+- **Once**, after the research database contains **at least 300 evaluated
+  formulas** under the current configuration.
+- The result of that first look is the headline result, whatever it shows.
+  Any later look (for example after a bug fix) is recorded with its look
+  number and a written reason and is reported alongside, never instead of,
+  the first.
+
+## Which formulas (selection rule)
+
+Applied mechanically by the code to the database at evaluation time:
+
+1. Rank all evaluated formulas by **fitness** (current configuration).
+2. Exclude every formula with a **direction mismatch** (its rationale states a
+   direction the formula does not follow). Formulas evaluated before the
+   direction check existed are eligible.
+3. Walk down the ranking and select a formula unless its daily stock-ranking
+   correlation (signal similarity over the research period) with an
+   already-selected formula exceeds **0.8**.
+4. Stop at **5** selected formulas: the **top 5**.
+
+Comparison groups, evaluated the same way:
+
+- **Median formula** — the evaluated formula at the median fitness rank (the
+  lower of the two middle ranks if the count is even).
+- **Random 5** — five formulas drawn uniformly, with random seed **20261010**,
+  from all evaluated formulas not in the top 5.
+
+These show how much the selected formulas beat ordinary ones; if the top 5 do
+no better than the random 5 out of sample, the selection added nothing.
+
+## What is reported
+
+For every evaluated formula: holdout Sharpe, CAGR, maximum drawdown,
+turnover, excess return versus EW_DOW, DIA and SPY, and size-adjusted alpha
+with its Newey-West t-statistic, next to the same formula&#x27;s validation
+results. Plus the combined top-5 portfolio (equal-weight average of the five
+strategies&#x27; daily returns) and the averages of each group.
+
+## What counts as success
+
+**Primary criterion.** The combined top-5 portfolio has, over the holdout
+period:
+
+- a Sharpe ratio **above 0**, and
+- a CAGR **above EW_DOW&#x27;s** (the equal-weight Dow, which the strategy could
+  have held instead).
+
+Both must hold. Anything else is reported as a failure of the primary
+criterion.
+
+**Secondary results** (reported, not pass/fail): how many of the five
+individually meet both conditions; the top-5 average holdout Sharpe versus
+the random-5 average and the median formula; the drop from validation to
+holdout Sharpe for each group.
+
+## Honest limits stated in advance
+
+About two years of daily data cannot establish statistical significance for
+strategies with Sharpe ratios near 1; t-statistics will be reported but are
+not part of the success criterion. Thirty large-cap stocks offer limited
+diversification, and the result is one period of one market. A success is
+evidence the method found something that survived out of sample, not proof
+of a durable edge; a failure is a legitimate, reportable finding.
+
+## Amendment 1 — 2026-10-12
+
+_Made before any holdout data was evaluated. Original plan: commit `bd41f19`._
+
+**Change: direction-mismatch threshold set to 0.2.** Step 2 of the selection
+rule excludes formulas whose rationale states a direction the formula does
+not follow. A mismatch is now counted only when the formula&#x27;s average daily
+rank correlation with a stated indicator has the opposite sign **and** an
+absolute value of at least **0.2**. Until now the code used 0.05 (the original
+plan did not state a value).
+
+**Reason.** Most formulas multiply two indicators (e.g.
+`dollar_volume_63 * trend_r2_126`). A product of two z-scores has almost no
+rank correlation with either component on its own, so the correlations behind
+most flags were between −0.05 and −0.10 — statistical noise rather than a
+contradiction. At 0.05, 44 of 110 checked formulas (40%) were flagged,
+including four of the top ten for that reason alone. Clear contradictions
+(e.g. a formula said to buy low RSI that has +0.71 correlation with RSI)
+remain flagged at 0.2.
+
+**What had been seen.** The decision was made after viewing a *preview of the
+selection rule* on research data (which formulas would be chosen, by ID, with
+their train/validation metrics). No holdout returns, prices or metrics were
+computed or viewed; the holdout table in the research database is empty.
+
+**Safeguard against cherry-picking.** At holdout time the code also evaluates
+and reports, as a separate group, the **top 5 selected with the original 0.05
+threshold** (same rule otherwise). Both groups are reported side by side; the
+primary criterion is applied to the 0.2-threshold top 5 as amended, and the
+0.05 group&#x27;s result is shown next to it.
+
+**Other changes since the plan (for transparency).** On the same date, for
+formulas proposed from now on: the LLM prompt explains that indicators are
+cross-sectional z-scores; 60% of proposals are brand-new ideas; mutations and
+combinations are proposed by a smaller model (`qwen3:14b`); and fitness gains
+a penalty for formulas in a crowded family (many top formulas with signal
+correlation above 0.8). Fitness — and therefore the ranking used in step 1 —
+is computed with the configuration in force at holdout time, as the original
+plan states.
+
+## Amendment 2 — 2026-10-16
+
+_Made before any holdout data was evaluated (the holdout table is still empty)
+and before any paper-trading code was written or run._
+
+**Holdout period fixed: 2024-10-01 to 2026-10-15 (inclusive).** The original
+plan let the holdout run to &quot;the last trading day in the cache when the
+evaluation runs&quot;. It now ends on a fixed date, so that it cannot overlap with
+paper trading. Holdout metrics use only returns dated 2024-10-01 through
+2026-10-15, whenever the evaluation is run.
+
+**Paper trading is a separate forward test starting 2026-10-16.** Paper
+portfolios are live forward results: created on or after 2026-10-16, they
+trade only on prices that did not exist when they were created. They use the
+same rules as the backtest (top 5, equal weight, the formula&#x27;s own rebalance
+frequency, signal at the close and trade at the next open, 5 + 5 bps costs)
+and are measured against DIA, SPY and EW_DOW. Paper results are never shown to
+the language model and play no part in holdout selection. Each portfolio
+records the commit of this amendment.
+
+**First paper portfolios: the top 3 by fitness on 2026-10-16.** Chosen from
+the **204** formulas evaluated at that date, **by fitness alone** (no other
+criterion, no look at holdout or paper results):
+
+| Rank | Formula | Fitness | Rebalance |
+|---|---|---|---|
+| 1 | #273 `dollar_volume_63 * trend_r2_126 + (dist_52w_high + intraday_ret_21) * vol_ratio_20_120 + (dist_52w_high + overnight_ret_21) * pv_corr_20` | +0.4962 | monthly |
+| 2 | #133 `dollar_volume_63 * trend_r2_126 + overnight_ret_21 * vol_ratio_20_120 + pv_corr_20 * (1 - beta_252)` | +0.4809 | monthly |
+| 3 | #51 `dollar_volume_63 * (trend_r2_126 + ema_gap_12_26)` | +0.4546 | monthly |
+
+(Rank 4, #246, had fitness +0.4545 — the cut between ranks 3 and 4 is a
+difference of 0.0001.) They are created after the 2026-10-16 close, so their
+first trade is at the next open (2026-10-19), using the 2026-10-16 close as
+the signal.
+
+**Holdout selection will also be paper-traded.** When the holdout is
+evaluated, the formulas selected by the rule above (the top 5, and for
+comparison the top 5 under the original 0.05 direction rule) also get paper
+portfolios starting the next trading day, so the same formulas have both a
+holdout test and a live forward test.
+
+## Amendment 3 — 2026-11-12
+
+_Made before any holdout data was evaluated (the holdout table is still empty:
+0 looks) and before any arm of the parallel worlds experiment other than arm 1
+was run. At this date arm 1 (the research run this plan was written for) has
+204 evaluated formulas; the price snapshot for arms 2–5 has not been made._
+
+**Change 1: the one holdout look is made after all five arms have finished.**
+The parallel worlds experiment (`docs/PARALLEL_WORLDS_PLAN.md`) runs the same
+search in five arms: arm 1 is this research run; arms 2–4 search transformed
+copies of the research data; arm 5 repeats the search on the untransformed
+research data. The holdout is now evaluated only when:
+
+- arm 1 has at least 300 evaluated formulas (unchanged), **and**
+- each of arms 5, 2, 3 and 4 has reached its stop rule (300 evaluated formulas
+  or 150 generations, whichever comes first), **and**
+- the author explicitly asks for it (unchanged).
+
+The holdout is still evaluated **exactly once**. The rules for any later look
+(look number and written reason, reported alongside and never instead of the
+first) are unchanged. The holdout period is unchanged: 2024-10-01 to
+2026-10-15.
+
+**Change 2: the same look also evaluates the seven transfer-test groups.**
+In addition to the groups already in this plan, the single look evaluates the
+seven groups of the parallel worlds plan (section 8, item 16), 70 formulas:
+
+- for each of arms 2, 3 and 4: its top 10 by fitness within its first 300
+  evaluated formulas, and a random 10 from the rest of those 300 (seeds
+  20261113, 20261114 and 20261115, recorded in `config.yaml` on 2026-11-11);
+- the top 10 of arm 5, as the real-data reference.
+
+These groups are fixed mechanically by each arm&#x27;s database, the fitness rule
+and the recorded seeds. They are evaluated on the **real, untransformed**
+holdout data under the rules of the &quot;Holdout data&quot; section above (each formula
+keeps its expression and its own rebalance frequency). The holdout is never
+transformed, and no arm&#x27;s search ever loads it.
+
+Reported for each of the seven groups and for each of their formulas: holdout
+Sharpe ratio, holdout CAGR minus EW_DOW&#x27;s, and deflated Sharpe ratio (item 16
+of the parallel worlds plan), and returns during the 5 largest peak-to-trough
+declines of the real EW_DOW inside the holdout period compared with the other
+days of the holdout period (item 17), each next to the same numbers on the
+research data. The exact definitions are in the parallel worlds plan, section
+8.
+
+**Unchanged.** The selection rule (top 5 of arm 1 by fitness, direction
+threshold 0.2, signal correlation at most 0.8), the comparison groups (median
+formula, random 5 with seed 20261010, top 5 under the original 0.05 rule) and
+the primary success criterion, which applies only to arm 1&#x27;s combined top 5.
+The seven transfer-test groups are not part of the success criterion and are
+reported as numbers only. They do not get paper portfolios; the paper
+portfolios of amendment 2 (arm 1&#x27;s holdout selection) start the trading day
+after the look, as before, which is now later.
+
+**Reason.** In the parallel worlds experiment every year of the research
+period is seen by some arm in transformed form (the parallel worlds plan,
+section 3.1, lists the real years each arm&#x27;s train and validation windows
+cover). The holdout period is the only period that no arm has seen. Because
+this plan allows one look, the look has to wait until the formulas of all arms
+exist.
+
+**Consequences stated in advance.**
+
+- Arm 1 stops at the end of the generation in which it reaches 300 evaluated
+  formulas and is not run again before the look. The selection rule is applied
+  to arm 1&#x27;s database as it stands at the look.
+- Results from arms 2–5 are never shown in arm 1&#x27;s prompts and are stored in
+  separate databases, so they cannot change arm 1&#x27;s formulas, fitness or
+  selection.
+- The data cache is refreshed (`fetch-data`) immediately before the look, as
+  before. Arms 2–5 searched on a frozen copy of the research data made
+  earlier; a refresh can revise dividend-adjusted price levels, so their
+  formulas&#x27; research-period numbers recomputed at the look can differ slightly
+  from the stored ones. Both are reported.
+- `evaluate-holdout` enforces this amendment mechanically: it refuses while
+  any of arms 5, 2, 3 or 4 has not reached its stop rule.
+- Nothing runs the holdout evaluation automatically. It runs only when the
+  author asks for it.
+</pre></details>
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <p><strong>Educational research project — not investment advice.</strong> Past and simulated performance
+    does not predict future results. Nothing on this site is a recommendation to buy or sell any security.</p>
+    <p>Last updated 2026-11-17 08:30 Central Standard Time · by Sulaiman Waheeduddin · <a href="about.html">About</a></p>
+  </div>
+</footer>
+</body>
+</html>

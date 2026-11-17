@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forge 11</title>
+<meta name="description" content="An AI formula search on real, time-reversed and price-inverted stock market data.">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html">Forge 11</a>
+    <nav class="site-nav" aria-label="Main"><a href="index.html" aria-current="page">Home</a><a href="hypotheses.html">Hypotheses</a><a href="how-it-works.html">How it works</a><a href="results.html">Results</a><a href="holdout.html">Holdout</a><a href="about.html">About</a></nav>
+  </div>
+</header>
+<main class="wrap">
+<p class="eyebrow">Research question</p>
+<h1>Does an AI formula search find real patterns in stock market data, or would it find equally strong formulas in markets that run backward in time, upside down, or both?</h1>
+<p class="lede">Forge 11 lets a language model, run on the author's own computer, propose formulas that rank the 30 stocks of the Dow Jones Industrial Average using price and volume indicators. Each formula is backtested after trading costs, and the results are fed back so the model can propose better ones.</p>
+<p>The experiment runs that identical search five times. Two runs use the real research data; three use versions of the same data that run backward in time, upside down, or both. The model sees the same indicator names in every run and is never told which version it is searching. Each run is measured against its own, equally transformed benchmarks. Afterwards, formulas found in the transformed markets are also tested on the real data. The plan and the hypotheses were committed before any transformed run started.</p>
+<p><span class="badge badge-pending">Research data only — holdout pending</span> <span class="badge badge-pending">PARTIAL: arm 3 has 296 of 300</span></p>
+<div class="cards"><div class="card"><p class="label">Arms finished</p><p class="value">5 of 5</p><p class="note">Every arm reached its stop rule</p></div><div class="card"><p class="label">Formulas tested per arm</p><p class="value">296–303</p><p class="note">Real 303 · Real control 300 · Reversed 303 · Inverted 296 · Reversed + inverted 303</p></div><div class="card"><p class="label">Holdout test</p><p class="value">Pending</p><p class="note">Oct 2024 – Oct 2026, run once, only on the author&#x27;s request</p></div><div class="card"><p class="label">Plan and hypotheses</p><p class="value">Registered 2026-11-12</p><p class="note">Committed before any transformed arm ran</p></div></div>
+<h2>The five arms</h2>
+<div class="table-wrap"><table><thead><tr><th>Arm and the data its search sees</th><th class="num">Formulas<br>tested</th><th>Status</th></tr></thead><tbody><tr><td><strong>Real</strong> <span class="muted small">(arm 1)</span><br><span class="small">The real research data, 2010 to September 2024 (the original search).</span></td><td class="num">303</td><td><span class="badge badge-ok">Finished</span></td></tr><tr><td><strong>Real control</strong> <span class="muted small">(arm 5)</span><br><span class="small">The same real data, run again under exactly the settings of the three transformed arms.</span></td><td class="num">300</td><td><span class="badge badge-ok">Finished</span></td></tr><tr><td><strong>Reversed</strong> <span class="muted small">(arm 2)</span><br><span class="small">The same days in the opposite order: the market runs backward in time.</span></td><td class="num">303</td><td><span class="badge badge-ok">Finished</span></td></tr><tr><td><strong>Inverted</strong> <span class="muted small">(arm 3)</span><br><span class="small">Every price turned upside down: each rise becomes a fall of the same size, and the reverse.</span></td><td class="num">296</td><td><span class="badge badge-ok">Finished</span></td></tr><tr><td><strong>Reversed + inverted</strong> <span class="muted small">(arm 4)</span><br><span class="small">Both: backward in time and upside down.</span></td><td class="num">303</td><td><span class="badge badge-ok">Finished</span></td></tr></tbody></table></div>
+<p class="small muted">Stop rule for every arm: 300 tested formulas or 150 generations of proposals, whichever comes first. The comparison uses the first 300 formulas of each arm (PARTIAL: arm 3 has 296 of 300).</p>
+<h2>On this site</h2>
+<ul class="link-list"><li><a href="hypotheses.html">Hypotheses</a> — the four hypotheses, as registered before the runs.</li><li><a href="how-it-works.html">How it works</a> — the transformations, what is held identical, the stop rule and the safeguards.</li><li><a href="results.html">Results</a> — figures and tables from the research data, including the transfer and decline tests.</li><li><a href="holdout.html">Holdout</a> — the locked final test and what it will measure.</li><li><a href="about.html">About</a> — the author.</li></ul>
+<div class="actions"><a class="button" href="results.html">See the results</a><a class="button secondary" href="how-it-works.html">How it works</a></div>
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <p><strong>Educational research project — not investment advice.</strong> Past and simulated performance
+    does not predict future results. Nothing on this site is a recommendation to buy or sell any security.</p>
+    <p>Last updated 2026-11-17 08:30 Central Standard Time · by Sulaiman Waheeduddin · <a href="about.html">About</a></p>
+  </div>
+</footer>
+</body>
+</html>

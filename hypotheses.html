@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hypotheses · Forge 11</title>
+<meta name="description" content="The pre-registered hypotheses H1-H4.">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html">Forge 11</a>
+    <nav class="site-nav" aria-label="Main"><a href="index.html">Home</a><a href="hypotheses.html" aria-current="page">Hypotheses</a><a href="how-it-works.html">How it works</a><a href="results.html">Results</a><a href="holdout.html">Holdout</a><a href="about.html">About</a></nav>
+  </div>
+</header>
+<main class="wrap">
+<h1>Hypotheses</h1>
+<p><span class="badge badge-ok">Pre-registered 2026-11-12</span></p><p class="lede">These four hypotheses were written by the author and committed with the experiment's plan on <strong>2026-11-12</strong> (commit <code>f168fa6</code>), before any of the transformed arms ran. They appear here exactly as committed.</p>
+<div class="hypotheses"><p>These hypotheses were written by the author before any variant arm was run.</p>
+<p><strong>H1 — Transferability.</strong> Formulas discovered in the reversed (Arm 2) and inverted (Arm 3) arms will retain predictive value when applied to real market data. Specifically, the top 10 formulas from each variant arm, evaluated on the real research data, will achieve a positive average validation Sharpe ratio and outperform a random sample of formulas from the same arm.</p>
+<p><strong>H2 — Reversed arm and the asymmetry of declines.</strong> Real markets tend to fall quickly and rise slowly. In the reversed arm this pattern is flipped, so declines unfold slowly and rallies occur suddenly. I expect formulas discovered in the reversed arm to adapt to this flipped pattern and therefore to predict real-market declines poorly. When evaluated on real data, their performance should be weakest during periods of sharp decline (measured by returns during the worst drawdown periods of EW_DOW).</p>
+<p><strong>H3 — Inverted arm and the same asymmetry.</strong> Inverting prices also flips the speed of rises and falls: real crashes become sudden rallies, and real slow advances become slow declines. I expect the inverted arm to face the same problem as the reversed arm, with its formulas predicting real-market declines poorly in the same way as described in H2.</p>
+<p><strong>H4 — Reversed and inverted arm restores the asymmetry.</strong> Applying both transformations flips the pattern twice, so Arm 4 again has fast declines and slow rises, as in real markets. I expect formulas from Arm 4 to transfer to real data better than formulas from Arms 2 and 3, and to perform better than them during real periods of sharp decline.</p></div>
+<h2>Changes since registration</h2>
+<p>None: the plan file has not been changed since it was committed.</p>
+<p>The results that bear on these hypotheses are on the <a href="results.html">Results</a> page (research data). The holdout versions of the transfer and decline tests are still pending.</p>
+<details><summary>The full pre-registered plan (docs/PARALLEL_WORLDS_PLAN.md)</summary><pre># Parallel worlds experiment — pre-registered plan
+
+Status: **pre-registered.** This file was committed on its own before any of
+arms 2–5 was run; the date of that commit is the registration date. It is not
+edited afterwards except by dated amendments appended at the end, each
+committed on its own before the run it affects.
+
+## 1. Purpose
+
+Run the same LLM formula search on versions of the same research data that
+differ only in how the data are transformed, and record how the search results
+differ between them. Arm 5 repeats the search on the untransformed data under
+exactly the settings of arms 2–4, as a clean control for arm 1. After the arms
+have run, formulas found in arms 2–4 are also evaluated on the untransformed
+data: on the research period, and — once, in the single holdout evaluation — on
+the holdout period (section 8, items 16–17).
+
+## 2. Arms
+
+| Arm | Name | Data | Database |
+|---|---|---|---|
+| 1 | `real` | Research data as is | `data/forge11.db` (the existing official run) |
+| 2 | `reversed` | Time reversed (section 3.1) | `data/arms/reversed.db` |
+| 3 | `inverted` | Price inverted (section 3.2) | `data/arms/inverted.db` |
+| 4 | `reversed_inverted` | Time reversed, then price inverted (section 3.3) | `data/arms/reversed_inverted.db` |
+| 5 | `real_control` | Research data as is, from the frozen snapshot (section 3.4) | `data/arms/real_control.db` |
+
+Selected with the global CLI option `--arm &lt;name&gt;` (default `real`).
+
+## 3. Transformations
+
+All transformations are applied in memory to the **research panel only**
+(trading days before 2024-10-01, the holdout start), after the usual loading
+steps: dividend (total-return) adjustment of open, high, low and close for
+stocks and benchmark ETFs, and the point-in-time Dow membership mask. Nothing
+is written back to the price cache.
+
+Notation: trading days of the research panel are t = 0 … N−1 (first cached day
+in 2010 through 2024-09-30). For each stock or ETF, O, H, L, C are adjusted
+open, high, low, close; V is share volume; M is the membership flag.
+
+### 3.1 Time reversal (arm 2)
+
+- Bar order is reversed: the bar shown on trading day t is the original bar of
+  day N−1−t. The date labels are the original calendar, unchanged and still
+  increasing, so the reversed series runs from 2024-09-30 (shown on the first
+  trading day of 2010) back to the first cached day of 2010 (shown on
+  2024-09-30).
+- Within each bar: O&#x27; = C, C&#x27; = O, H&#x27; = H, L&#x27; = L.
+- Volume stays with its bar: V&#x27;(t) = V(N−1−t).
+- Membership stays with its bar: M&#x27;(t) = M(N−1−t) (each bar keeps the real Dow
+  members of its original day).
+- Benchmark ETFs (DIA, SPY): close series reversed the same way.
+- A stock missing before its listing date is missing at the end of the
+  reversed series instead.
+- Reversed data are laid onto the original calendar labels on purpose, so
+  train/validation split dates, walk-forward folds and rebalance dates are the
+  same labels in every arm. **Each arm&#x27;s train and validation windows therefore
+  cover different real years** (computed from the research calendar on
+  2026-10-31, 3,710 trading days, 2010-01-04 – 2024-09-30; `methods.md` records
+  the values from the snapshot actually used):
+
+  | Window (labels) | Arms 1, 3, 5: real dates covered | Arms 2, 4: real dates covered (in reverse order) |
+  |---|---|---|
+  | Indicator warm-up (2010) | 2010-01-04 – 2010-12-31 | 2024-09-30 back to 2023-09-29 |
+  | Train (2011-01-01 – 2018-12-31) | 2011 – 2018 | 2023-09-28 back to 2015-10-01 |
+  | Validation (2019-01-01 – 2024-09-30) | 2019 – 2024-09-30 | 2015-09-30 back to 2010-01-04 |
+
+### 3.2 Price inversion (arm 3)
+
+- For each stock and ETF, P0 is its first valid adjusted close in the arm&#x27;s
+  timeline. Every price P becomes P&#x27; = P0² / P, so log P&#x27; = 2·log P0 − log P and
+  every log return changes sign; P&#x27;(first day) = P0.
+- O&#x27; = P0²/O, C&#x27; = P0²/C, H&#x27; = P0²/L, L&#x27; = P0²/H (high and low swap, so H&#x27; ≥ L&#x27;).
+- Volume (shares) unchanged. Indicators built from price × volume (e.g.
+  `dollar_volume_63`) use the inverted prices.
+- Membership unchanged. Benchmark ETF closes inverted with their own P0.
+
+### 3.3 Time reversal + price inversion (arm 4)
+
+Section 3.1 first, then section 3.2 on the result. P0 is therefore the first
+valid close of the reversed series (the original last close before the
+holdout, or the last close before a stock left the data).
+
+- **Why this order:** arm 4 is defined as arm 2&#x27;s data, inverted, with the same
+  inversion rule as arm 3 — P0 is the price on the first day the arm shows. In
+  both arms 3 and 4 each stock&#x27;s inverted price therefore starts at its real
+  price on the first day of that arm&#x27;s timeline.
+- **Effect on dollar volume:** the two orders give the same returns but
+  different price levels. With reverse-then-invert, P0 is the real 2024 price;
+  with invert-then-reverse it would be the real 2010 price. For each stock the
+  inverted price level (and so price × volume) differs between the two orders by
+  the factor (P2024 / P2010)², which differs across stocks — a stock whose price
+  rose tenfold would have dollar volume 100 times higher under one order than
+  the other. The cross-sectional ranking of `dollar_volume_63` (the size proxy
+  used by size exposure and the size factor) and anything else built from price
+  level times volume therefore depends on the order; returns-based indicators
+  do not.
+
+### 3.4 Arm 5 (real control)
+
+No transformation. Arm 5 reads the research rows of the same frozen snapshot as
+arms 2–4 and runs under the same settings, seed and stop rule. It differs from
+arm 1 in the points listed in section 5.1.
+
+### 3.5 Benchmarks in every arm
+
+Each arm is judged against its own transformed benchmarks: DIA and SPY as
+transformed above, and EW_DOW recomputed from the arm&#x27;s transformed stock
+closes and membership (daily-rebalanced equal weight of members, no costs, the
+same rule as arm 1). Every excess return, size factor and size exposure in an
+arm uses that arm&#x27;s data only.
+
+## 4. Holdout and paper trading
+
+- The holdout (2024-10-01 – 2026-10-15) is never transformed and never loaded
+  in arms 2–5: in those arms the full-data loader, `evaluate-holdout`,
+  `paper-trade`, `paper-update`, `fetch-data`, `report` and `build-site` refuse
+  to run.
+- Paper trading belongs to arm 1 only.
+- The holdout is evaluated **exactly once**, for all arms together, after all
+  five arms have finished (`docs/HOLDOUT_PLAN.md`, amendment 3). That single
+  evaluation is run by `evaluate-holdout` on the real, untransformed data and
+  includes the seven groups of item 16 (section 8). It is never started
+  automatically; it waits for the author&#x27;s explicit request.
+- No search in any arm sees holdout data: the evaluation happens after every
+  arm has stopped, and its results are never placed in a prompt.
+
+## 5. Settings held identical
+
+- Everything in `config.yaml` as it stands when this plan is committed:
+  indicators (50, same names and descriptions), formula language and limits,
+  backtest (top 5, long only, signal at close, trade at next open, 5 + 5 bps,
+  rebalance chosen per formula: W / 2W / M), splits and walk-forward folds,
+  fitness weights and penalties, duplicate rules, direction check (threshold
+  0.2), family rules, DSR, loop settings (8 proposals per generation, mix
+  60 / 25 / 15 new / mutate / combine, context sizes), prompts, model routing
+  (new ideas → `qwen3:30b-a3b`, mutations and combinations → `qwen3:14b`),
+  temperatures and output caps.
+- Arms 2–5 differ from each other only in the data transform. Each has its own
+  database, and its arm name is part of its config hash (arm 1&#x27;s hash
+  `9a67f1776d65` is unchanged).
+- Price data for arms 2–5: one frozen copy of the research rows of the price
+  cache, made once before the first of these arms runs (`data/arms/snapshot/`,
+  only dates before 2024-10-01); its SHA-256 is recorded in each arm&#x27;s run
+  records and checked on every load. Arms 2–5 read only that copy.
+- Ollama sampling seed: `llm.ollama_seed` = 20261030 in arms 2–5, sent with
+  every request. Arms 2–5 send the same first prompt (no formulas tested yet);
+  later prompts differ because results differ.
+- Stop rule per arm: the loop stops at the end of the generation in which the
+  arm reaches 300 evaluated formulas, or after 150 generations, whichever comes
+  first. Failed generations are kept and counted. An arm that stops at 150
+  generations with fewer than 300 formulas is analysed with what it has, and
+  every output says so.
+- Seed of the random groups in the transfer test (section 8, item 16):
+  `experiment.transfer_seed` = 20261111 plus the arm number, i.e. 20261113
+  (arm 2), 20261114 (arm 3), 20261115 (arm 4). Recorded in `config.yaml` before
+  any of these arms ran; the seeds are printed in `methods.md`.
+
+### 5.1 Known differences between arm 1 and arms 2–5 (recorded, not corrected)
+
+Arm 5 exists so that arms 2–4 can also be compared with a real-data arm that
+has none of these differences.
+
+- Arm 1&#x27;s first 204 evaluated formulas were produced while settings were still
+  changing (e.g. model routing, prompt wording on z-scores and on mutations,
+  proposal mix, family penalty, direction threshold, salvage fixes); its
+  remaining formulas use the final settings. Arms 2–5 use the final settings
+  from generation 1.
+- Arm 1 read the live price cache, refreshed at different times (a refresh can
+  revise dividend-adjusted price levels); arms 2–5 read the frozen snapshot.
+- Arm 1 requests were sent without a sampling seed.
+- Arm 1&#x27;s run had interruptions and restarts (e.g. an Ollama CUDA error) under
+  the earlier settings; these are kept in its record.
+
+## 6. Isolation
+
+- One SQLite database per arm. No arm reads another arm&#x27;s database while
+  running.
+- The LLM is never told which arm it is in: prompts are built by the same code
+  with the same indicator names and descriptions; the arm name appears only in
+  the database file name and run records, which are never sent to the model.
+- No result from one arm is ever placed in another arm&#x27;s prompts.
+- Arm-to-arm comparison happens only in the `compare-arms` command, after the
+  arms have run, and its output is never shown to the model.
+- The research-data versions of the transfer and decline tests (section 8,
+  items 16–17) are computed inside `compare-arms` only, in memory. Nothing is
+  written to any arm&#x27;s database, so no formula&#x27;s result on another arm&#x27;s data
+  can reach a prompt.
+- The holdout versions are computed only by `evaluate-holdout`, in the single
+  holdout evaluation, after all arms have stopped. `compare-arms` never loads
+  holdout prices; it reports the numbers saved by that evaluation.
+
+## 7. Order
+
+1. Arm 1 continues to 300 evaluated formulas (`run-loop --until-evaluated 300`).
+2. Snapshot of the research rows of the price cache (`arms-snapshot`).
+3. Arms 5, 2, 3 and 4, one at a time, in that order (the control first).
+4. `compare-arms` on the research data: every item of section 8 with version
+   (a) of items 16 and 17. It loads no holdout data. The 70 formulas of item 16
+   are fixed mechanically by each arm&#x27;s database, the fitness rule and the
+   recorded seeds, so this step does not change what the holdout evaluation
+   evaluates.
+5. The single holdout evaluation, per `docs/HOLDOUT_PLAN.md` and its amendment
+   3: arm 1&#x27;s selection and comparison groups plus the seven groups of item 16.
+   Only on the author&#x27;s explicit request.
+6. `compare-arms` again, adding the saved holdout numbers (version (b)).
+
+## 8. What is measured
+
+Analysis set per arm: the **first 300 evaluated formulas** (by formula id,
+i.e. evaluation order) under that arm&#x27;s config hash. Within that set, the
+deflated Sharpe ratio is recomputed with exactly N = 300 trials and the set&#x27;s
+own cross-trial Sharpe variance, and family crowding and fitness (including the
+family penalty) are recomputed among the set (same rules as the loop). Formulas
+an arm evaluated beyond its first 300 are not analysed.
+
+Per arm:
+
+1. Validation Sharpe ratio: count, mean, standard deviation, minimum,
+   quartiles, maximum; histogram and empirical distribution.
+2. Deflated Sharpe ratio: same statistics; number ≥ 0.95.
+3. Train Sharpe ratio: same statistics.
+4. Train–validation gap (validation Sharpe − train Sharpe) per formula: same
+   statistics; and the per-generation top-10 averages recorded by the loop
+   (validation, train, gap, luck line) up to the generation that reached 300.
+5. Top 10 by recomputed fitness: averages of validation Sharpe, train Sharpe,
+   gap, deflated Sharpe, validation CAGR, validation CAGR minus own EW_DOW
+   CAGR, size exposure; their expressions.
+6. Share of formulas with validation (and train) CAGR above the arm&#x27;s own
+   EW_DOW.
+7. Families among the top 50: number, size of the largest, size distribution,
+   and the top 5 families&#x27; representative expressions and indicator sets.
+8. Indicators: for each of the 50 indicators, the share of the top-50 formulas
+   containing it, and the median validation Sharpe of all formulas containing
+   it.
+9. Proposal outcomes: proposed, evaluated, duplicates, invalid, failed
+   generations, generations needed to reach 300; duplicate rate by model.
+10. Direction check: number of formulas checked and number contradicting their
+    own rationale (threshold 0.2).
+11. The arm&#x27;s own benchmark CAGRs (DIA, SPY, EW_DOW) in train and validation.
+
+Between arms (all ten pairs):
+
+12. Differences in the per-arm statistics of items 1–6, listed for every arm
+    against arm 1 and against arm 5.
+13. Mann–Whitney U test (two-sided) and Kolmogorov–Smirnov statistic for the
+    validation Sharpe, deflated Sharpe and gap distributions; p-values reported
+    as computed, no multiple-comparison correction applied.
+14. Indicators: the arm × indicator tables of item 8 side by side.
+15. Families: Jaccard overlap of the indicator sets of each pair of arms&#x27; top 5
+    family representatives; number of identical canonical expressions present
+    in both arms.
+
+Formulas from arms 2–4 on the real data. Items 16 and 17 are each reported in
+two versions, for the same seven groups: **(a) research data** — every real
+research year was seen by some arm in transformed form (see &quot;Real years
+covered&quot; below) — and **(b) holdout data**, 2024-10-01 – 2026-10-15, which no
+arm has seen. Version (b) is defined after item 17.
+
+16. **Transfer test.** Version (a):
+    - *Groups (7 groups, 70 formulas):* for each of arms 2, 3 and 4, (a) its
+      top 10 by fitness recomputed within its analysis set (the same ten as
+      item 5) and (b) a random 10 from the rest of its analysis set; plus the
+      top 10 of arm 5 as the real-data reference.
+    - *Random 10:* the analysis set&#x27;s formula ids without the top 10, sorted
+      ascending; `random.Random(seed).sample(ids, 10)` in Python, with the seed
+      of section 5 (the same method as the random group of
+      `docs/HOLDOUT_PLAN.md`). The draw is made once per arm and cannot be
+      re-drawn without changing the recorded seed. If fewer than 10 formulas
+      remain, all of them are taken.
+    - *Data:* the real research data, i.e. arm 5&#x27;s data — the untransformed
+      research rows of the frozen snapshot (SHA-256 checked, dates before
+      2024-10-01 only). The holdout is never loaded; the code refuses a panel
+      that reaches it.
+    - *Evaluation:* each formula keeps its expression and its own rebalance
+      frequency; backtest rules, costs, train and validation windows and
+      benchmarks are those of arm 5. A formula that cannot be evaluated on the
+      real data is listed with its error and left out of its group&#x27;s averages;
+      the count evaluated is reported per group.
+    - *Reported per group:* mean and median validation Sharpe ratio on the real
+      data; number of formulas with validation Sharpe above 0; mean train
+      Sharpe; mean deflated Sharpe ratio; mean validation CAGR minus real
+      EW_DOW CAGR and the same for train (percentage points per year); and, for
+      reference, the group&#x27;s means in its own arm (validation Sharpe, deflated
+      Sharpe, validation CAGR minus its own EW_DOW). Every formula&#x27;s own
+      numbers are listed as well.
+    - *Deflated Sharpe on the real data:* computed from the formula&#x27;s daily
+      validation returns on the real data (Sharpe, skewness, kurtosis, number
+      of days) with the number of trials and the cross-trial Sharpe variance of
+      arm 5&#x27;s analysis set (N = 300), for every group.
+    - *Check:* arm 5&#x27;s top 10 are re-evaluated the same way; the largest
+      absolute difference from their stored validation Sharpe is reported.
+    - *Real years covered* (from section 3.1): the test&#x27;s validation window is
+      real 2019-01-01 – 2024-09-30 and its train window is real 2011 – 2018.
+      Arms 2 and 4 searched with real 2015-10-01 – 2023-09-28 as their train
+      window, real 2023-09-29 – 2024-09-30 as their warm-up and real
+      2010-01-04 – 2015-09-30 as their validation window, each running
+      backward. Arm 3 searched on the same real dates as the test, with
+      inverted prices. Arm 5&#x27;s top 10 were selected by fitness on the same data
+      the test uses; the groups of arms 2–4 were selected on transformed data.
+
+17. **Decline test**, for the same seven groups and the same backtests as
+    item 16. Version (a):
+    - *Decline periods:* taken from the real EW_DOW level (arm 5&#x27;s) in the
+      validation window, re-based to 1 at the close of the last trading day
+      before the window. A decline is one unbroken spell below the running
+      peak. Its days run from the first trading day after the peak through the
+      trough, inclusive, where the trough is the lowest close before the peak
+      is regained or the window ends. The **5 declines with the most negative
+      peak-to-trough return** are used (ties go to the earlier one). They
+      cannot overlap. &quot;Other days&quot; are all remaining days of the validation
+      window.
+    - *Reported per formula and averaged per group:* mean daily net return on
+      decline days and on other days, and the difference (basis points per
+      day); mean daily return minus EW_DOW&#x27;s daily return on decline days and
+      on other days, and the difference (basis points per day); and for each of
+      the 5 declines, the compounded return over its days, EW_DOW&#x27;s compounded
+      return over the same days, and the difference.
+    - *Also reported:* the 5 declines (peak date, first day, trough date,
+      trading days, EW_DOW return, recovery date if any), the number of decline
+      days and other days, and EW_DOW&#x27;s own mean daily return on each.
+
+**Version (b) of items 16 and 17: holdout data.**
+
+- *When and where:* once, inside the single holdout evaluation
+  (`docs/HOLDOUT_PLAN.md`, amendment 3), after all five arms have finished and
+  only on the author&#x27;s explicit request. Not computed by `compare-arms`.
+- *Groups:* the same seven groups and the same 70 formulas as version (a) —
+  the same top 10s and the same seeded random 10s. Nothing is re-drawn.
+- *Data:* the real, untransformed data, loaded as the holdout plan prescribes
+  (price cache refreshed with `fetch-data` immediately before). Each formula
+  is backtested continuously from 2010 with its expression and its own
+  rebalance frequency; only returns dated 2024-10-01 – 2026-10-15 are scored.
+  Rules, costs and benchmarks as in arm 1 and arm 5.
+- *Item 16 on the holdout, per group:* mean and median holdout Sharpe ratio;
+  number of formulas with holdout Sharpe above 0; mean deflated Sharpe ratio;
+  mean holdout CAGR minus real EW_DOW&#x27;s holdout CAGR (percentage points per
+  year); next to the group&#x27;s version (a) numbers and its own-arm numbers.
+  Every formula&#x27;s own numbers are listed as well.
+- *Deflated Sharpe on the holdout:* computed from the formula&#x27;s daily holdout
+  returns (Sharpe, skewness, kurtosis, number of days) with the same number of
+  trials and cross-trial Sharpe variance as version (a) (arm 5&#x27;s analysis
+  set).
+- *Item 17 on the holdout:* the same definition of a decline applied to the
+  real EW_DOW level inside the holdout period, re-based to 1 at the close of
+  the last trading day before 2024-10-01; the 5 declines with the most
+  negative peak-to-trough return; &quot;other days&quot; are the remaining days of the
+  holdout period. The same measures as version (a), in the same units.
+- *Real years covered:* no arm&#x27;s warm-up, train or validation window contains
+  any day of the holdout period, in any arm; this also holds for arm 5&#x27;s top
+  10.
+- The holdout plan&#x27;s selection rule, comparison groups and success criterion
+  are those of arm 1 alone and are not changed by these groups.
+
+## 9. Outputs
+
+`python -m forge_11 compare-arms` writes to `reports/parallel_worlds/`:
+
+- `results.md` — every number above, per arm and per pair, as plain lists and
+  tables, with no interpretation.
+- `methods.md` — factual notes: transformations, settings, config hashes, data
+  snapshot hash, formula counts, generations, dates run, software commits.
+- `figures/*.png` — charts with labelled axes and units.
+- `tables/*.csv` and `tables/*.png` — the tables of `results.md`.
+- Items 16 and 17 appear as `results.md` sections 11 and 12, a section of
+  `methods.md` (groups, seeds, formula ids drawn, data dates, decline periods),
+  figures 12–16 and the tables `transfer_groups`, `transfer_formulas`,
+  `decline_episodes`, `decline_groups`, `decline_by_episode` and
+  `decline_formula_episodes` — numbers, tables and charts only.
+- Version (b) of items 16 and 17 (holdout) is printed by `evaluate-holdout`
+  and saved with the record of that holdout look. After the look,
+  `compare-arms` adds the saved numbers to `results.md`, with matching tables
+  and charts, next to version (a). Before the look these outputs say &quot;holdout
+  not yet evaluated&quot;.
+
+If an arm has fewer than 300 evaluated formulas, the command refuses unless
+`--allow-partial` is given, and every output is then marked PARTIAL with the
+actual counts.
+
+## 10. Hypotheses
+
+These hypotheses were written by the author before any variant arm was run.
+
+**H1 — Transferability.** Formulas discovered in the reversed (Arm 2) and inverted (Arm 3) arms will retain predictive value when applied to real market data. Specifically, the top 10 formulas from each variant arm, evaluated on the real research data, will achieve a positive average validation Sharpe ratio and outperform a random sample of formulas from the same arm.
+
+**H2 — Reversed arm and the asymmetry of declines.** Real markets tend to fall quickly and rise slowly. In the reversed arm this pattern is flipped, so declines unfold slowly and rallies occur suddenly. I expect formulas discovered in the reversed arm to adapt to this flipped pattern and therefore to predict real-market declines poorly. When evaluated on real data, their performance should be weakest during periods of sharp decline (measured by returns during the worst drawdown periods of EW_DOW).
+
+**H3 — Inverted arm and the same asymmetry.** Inverting prices also flips the speed of rises and falls: real crashes become sudden rallies, and real slow advances become slow declines. I expect the inverted arm to face the same problem as the reversed arm, with its formulas predicting real-market declines poorly in the same way as described in H2.
+
+**H4 — Reversed and inverted arm restores the asymmetry.** Applying both transformations flips the pattern twice, so Arm 4 again has fast declines and slow rises, as in real markets. I expect formulas from Arm 4 to transfer to real data better than formulas from Arms 2 and 3, and to perform better than them during real periods of sharp decline.
+
+## 11. Amendments
+
+None.
+</pre></details>
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <p><strong>Educational research project — not investment advice.</strong> Past and simulated performance
+    does not predict future results. Nothing on this site is a recommendation to buy or sell any security.</p>
+    <p>Last updated 2026-11-17 08:30 Central Standard Time · by Sulaiman Waheeduddin · <a href="about.html">About</a></p>
+  </div>
+</footer>
+</body>
+</html>
